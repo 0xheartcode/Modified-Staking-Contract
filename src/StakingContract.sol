@@ -30,7 +30,7 @@ contract StakingContract is ReentrancyGuard, Ownable {
         uint256 rewardDebt;
         uint256 rewards;
         uint256 unstakeInitTime;
-        uint256 stakeInitTime;  //TODO check changes here.
+        uint256 stakeInitTime;  
     }
 
     mapping(address => Staker) public stakers;
@@ -97,13 +97,13 @@ contract StakingContract is ReentrancyGuard, Ownable {
     function stake(uint256 _amount) external nonReentrant updateReward(msg.sender) {
         require(_amount > 0, "Cannot stake 0");
         require(block.timestamp >= emissionStart, "Staking not yet started");
-        require(block.timestamp <= emissionEnd, "Staking period has ended");
+        require(block.timestamp <= emissionEnd - minStakeTime, "It is too late to stake now. The end is near, or already came");
         Staker storage staker = stakers[msg.sender];
         require(staker.unstakeInitTime == 0, "Cannot stake after initiating unstake.");
         totalStaked += _amount;
         totalStakedAccruingRewards += _amount;
         staker.amountStaked += _amount;
-        if (staker.stakeInitTime == 0) staker.stakeInitTime = block.timestamp; // TODO check here.
+        if (staker.stakeInitTime == 0) staker.stakeInitTime = block.timestamp; 
 
         require(basicToken.transferFrom(msg.sender, address(this), _amount), "Token deposit failed");
         emit Staked(msg.sender, _amount);
@@ -115,7 +115,7 @@ contract StakingContract is ReentrancyGuard, Ownable {
         require(staker.unstakeInitTime == 0, "Unstake already initiated");
         require(staker.stakeInitTime + minStakeTime <= block.timestamp,
             "Must stake for min days before initiating unstake"
-        ); // TODO check changes here.
+        ); 
 
 
         staker.unstakeInitTime = block.timestamp;
@@ -141,7 +141,7 @@ contract StakingContract is ReentrancyGuard, Ownable {
         staker.amountStaked = 0;
         staker.rewardDebt = 0;
         staker.unstakeInitTime = 0;
-        staker.stakeInitTime = 0;   //TODO check changes here.
+        staker.stakeInitTime = 0;   
 
         uint256 totalAmount = amountAfterFee;
         if (reward > 0 && availableForRewards >= reward) {
@@ -188,7 +188,7 @@ contract StakingContract is ReentrancyGuard, Ownable {
         }
     }
 
-    // TODO check and edit this function here.
+    
     function getMandatoryUnstakeTimeLeft(address _staker) external view returns (uint256) {
         Staker storage staker = stakers[_staker];
         if (staker.stakeInitTime != 0 && block.timestamp < staker.stakeInitTime + minStakeTime) {
